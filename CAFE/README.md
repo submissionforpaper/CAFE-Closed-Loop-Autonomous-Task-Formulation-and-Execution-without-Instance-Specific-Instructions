@@ -1,5 +1,5 @@
 
-# CAFE Project Guide
+# CAFE: Closed-Loop Autonomous Task Formulation and Execution without Instance-Specific Instructions
 
 ## Directory Overview
 
