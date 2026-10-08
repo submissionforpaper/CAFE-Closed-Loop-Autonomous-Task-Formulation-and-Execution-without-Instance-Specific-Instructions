@@ -6,6 +6,7 @@ Anonymous materials for review.
 
 - [Project homepage](https://submissionforpaper.github.io/CAFE-Closed-Loop-Autonomous-Task-Formulation-and-Execution-without-Instance-Specific-Instructions/)
 - [Implementation repository](https://github.com/submissionforpaper/CAFE-Closed-Loop-Autonomous-Task-Formulation-and-Execution-without-Explicit-Task-Input)
+- [Source code directory](CAFE/)
 - [Local implementation guide](CAFE/README.md)
 
 ## Source code
