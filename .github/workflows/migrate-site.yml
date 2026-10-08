@@ -1,4 +1,4 @@
-name: Prepare anonymous CAFE project
+name: Finalize CAFE review materials
 
 on:
   push:
@@ -8,84 +8,58 @@ on:
 
 permissions:
   contents: write
+  pages: write
 
 jobs:
-  prepare:
+  finalize:
     runs-on: ubuntu-latest
     steps:
-      - name: Check out project
-        uses: actions/checkout@v4
-      - name: Check out anonymous implementation
-        uses: actions/checkout@v4
-        with:
-          repository: submissionforpaper/CAFE-Closed-Loop-Autonomous-Task-Formulation-and-Execution-without-Explicit-Task-Input
-          ref: d894f08e818649081632e1e21d515edc230c5c9c
-          path: .code-source
-          persist-credentials: false
-      - name: Copy source and prepare anonymous links
+      - uses: actions/checkout@v4
+      - name: Align paper title and anonymous project links
         shell: python
         run: |
           from pathlib import Path
           import re
-          import shutil
           from html.parser import HTMLParser
-          code_url = "https://github.com/submissionforpaper/CAFE-Closed-Loop-Autonomous-Task-Formulation-and-Execution-without-Explicit-Task-Input"
-          project_url = "https://github.com/submissionforpaper/CAFE-Closed-Loop-Autonomous-Task-Formulation-and-Execution-without-Instance-Specific-Instructions"
+          title = "CAFE: Closed-Loop Autonomous Task Formulation and Execution without Instance-Specific Instructions"
+          repo_url = "https://github.com/submissionforpaper/CAFE-Closed-Loop-Autonomous-Task-Formulation-and-Execution-without-Instance-Specific-Instructions"
           site_url = "https://submissionforpaper.github.io/CAFE-Closed-Loop-Autonomous-Task-Formulation-and-Execution-without-Instance-Specific-Instructions/"
-          if not Path("CAFE").exists():
-              shutil.copytree(".code-source/CAFE", "CAFE", ignore=shutil.ignore_patterns("__pycache__", "*.pyc"))
-              shutil.copy2(".code-source/README.md", "CAFE/README.md")
+          readme = Path("README.md")
+          text = readme.read_text(encoding="utf-8")
+          text = re.sub(r"^- \[(Source code directory|Local implementation guide)\].*\n", "", text, flags=re.M)
+          text = re.sub(r"(\[Implementation repository\]\()[^)]+(\))", lambda m: m[1] + repo_url + m[2], text)
+          readme.write_text(text, encoding="utf-8")
           page = Path("index.html")
           html = page.read_text(encoding="utf-8")
-          html = re.sub(r'<a\s+href="https://(?!submissionforpaper\.)[^"]+\.github\.io/[^"]*"[^>]*>[^<]*</a>', "", html)
-          html = html.replace(project_url, code_url).replace(">GitHub <span", ">Code <span").replace(">Project repository ", ">Code repository ")
+          html = html.replace("without Explicit Task Input", "without Instance-Specific Instructions")
+          html = html.replace("without explicit task input", "without instance-specific instructions")
+          html = re.sub(r"https://github\.com/submissionforpaper/[A-Za-z0-9_-]+", repo_url, html)
+          html = re.sub(r"<title>[^<]*</title>", "<title>" + title + "</title>", html)
+          html = re.sub(r'(<meta property="og:title" content=")[^"]*(">)', lambda m: m[1] + title + m[2], html)
           page.write_text(html, encoding="utf-8")
-          readme = [
-              "# CAFE",
-              "",
-              "Closed-Loop Autonomous Task Formulation and Execution without Instance-Specific Instructions.",
-              "",
-              "Anonymous materials for review.",
-              "",
-              f"- [Project homepage]({site_url})",
-              f"- [Implementation repository]({code_url})",
-              "- [Local implementation guide](CAFE/README.md)",
-              "",
-              "## Source code",
-              "",
-              "The implementation is included in CAFE/. The main entry point is CAFE/aithor2/main_with_depth.py.",
-              "",
-              "Install dependencies:",
-              "",
-              "~~~bash",
-              "pip install -r CAFE/aithor2/requirements.txt",
-              'pip install -r "CAFE/aithor2/embodied B1/requirements.txt"',
-              "~~~",
-              "",
-              "Configure your own API credentials before running the experiments.",
-              "",
-              "## Website",
-              "",
-              "The static homepage is served by GitHub Pages from main at the repository root.",
-              "Images, fonts, PDFs, results data and the project video are included in assets/.",
-              "",
-          ]
-          Path("README.md").write_text("\n".join(readme), encoding="utf-8")
+          guide = Path("CAFE/README.md")
+          guide_text = guide.read_text(encoding="utf-8")
+          guide_text = re.sub(r"^# CAFE Project Guide", "# " + title, guide_text, flags=re.M)
+          guide.write_text(guide_text, encoding="utf-8")
           class Links(HTMLParser):
               def handle_starttag(self, tag, attrs):
                   for key, value in attrs:
                       if key in ("href", "src", "content") and value and value.startswith(("http://", "https://")):
-                          assert value.startswith((code_url, site_url)), f"Unexpected external URL: {value}"
+                          assert value.startswith((repo_url, site_url)), f"Unexpected external URL: {value}"
           Links().feed(html)
-          assert 'id="method"' in html
+          assert len(re.findall(r"^- \[", text, flags=re.M)) == 2
           assert Path("CAFE/aithor2/main_with_depth.py").is_file()
-          assert not list(Path("CAFE").rglob("*.pyc"))
-      - name: Save anonymous project
+          assert "without Explicit Task Input" not in html
+      - name: Commit consistent review materials
         run: |
           git config user.name "submissionforpaper"
           git config user.email "270125933+submissionforpaper@users.noreply.github.com"
-          git add CAFE index.html README.md
+          git add README.md index.html CAFE/README.md
           if ! git diff --cached --quiet; then
-            git commit -m "Add implementation and anonymous project links"
+            git commit -m "Align implementation name and retain two project links"
             git push origin HEAD:main
           fi
+      - name: Publish latest homepage
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh api --method POST "repos/$GITHUB_REPOSITORY/pages/builds" --silent
