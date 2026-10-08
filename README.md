@@ -1,23 +1,27 @@
-# CAFE project website
+# CAFE
 
-Independent research project page for Closed-Loop Autonomous Task Formulation and Execution without Explicit Task Input.
+Closed-Loop Autonomous Task Formulation and Execution without Instance-Specific Instructions.
 
-Site: https://submissionforpaper.github.io/CAFE-Closed-Loop-Autonomous-Task-Formulation-and-Execution-without-Instance-Specific-Instructions/
+Anonymous materials for review.
 
-## Preview
+- [Project homepage](https://submissionforpaper.github.io/CAFE-Closed-Loop-Autonomous-Task-Formulation-and-Execution-without-Instance-Specific-Instructions/)
+- [Implementation repository](https://github.com/submissionforpaper/CAFE-Closed-Loop-Autonomous-Task-Formulation-and-Execution-without-Explicit-Task-Input)
+- [Local implementation guide](CAFE/README.md)
 
-Run `python -m http.server 8765` from this directory and open `http://localhost:8765`.
+## Source code
 
-## GitHub Pages
+The implementation is included in CAFE/. The main entry point is CAFE/aithor2/main_with_depth.py.
 
-In Settings → Pages, choose **Deploy from a branch**, branch **main**, folder **/(root)**, and save. The `.nojekyll` file serves the static site without a Jekyll build.
+Install dependencies:
 
-## Project video
+~~~bash
+pip install -r CAFE/aithor2/requirements.txt
+pip install -r "CAFE/aithor2/embodied B1/requirements.txt"
+~~~
 
-The project demonstration is embedded before the Method section, with links from the navigation and hero. `assets/videos/CAFE.mp4` preserves the supplied video's H.264 video and AAC audio streams; its MP4 metadata is moved to the beginning for progressive playback. The player uses native controls, inline mobile playback and no automatic video preloading. `assets/videos/cafe-poster.webp` is a frame from the same video.
+Configure your own API credentials before running the experiments.
 
-## Figures
+## Website
 
-All five user-supplied PDFs are included. Both pages of the ablation PDF are displayed. WebP figures are rendered from their corresponding PDFs; numerical baseline data is retained from the existing project page. The kitchen cover is an illustrative reconstruction.
-
-The site uses local Manrope and Source Serif 4 fonts, responsive layouts, accessible tabs and a keyboard-accessible full-resolution figure viewer.
+The static homepage is served by GitHub Pages from main at the repository root.
+Images, fonts, PDFs, results data and the project video are included in assets/.
