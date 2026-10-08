@@ -1,0 +1,3 @@
+User-agent: *
+Allow: /
+Sitemap: https://submissionforpaper.github.io/CAFE-Closed-Loop-Autonomous-Task-Formulation-and-Execution-without-Instance-Specific-Instructions/sitemap.xml
