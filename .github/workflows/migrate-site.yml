@@ -1,4 +1,4 @@
-name: Migrate CAFE homepage
+name: Prepare anonymous CAFE project
 
 on:
   push:
@@ -10,59 +10,82 @@ permissions:
   contents: write
 
 jobs:
-  migrate:
+  prepare:
     runs-on: ubuntu-latest
     steps:
-      - name: Check out destination
+      - name: Check out project
         uses: actions/checkout@v4
-      - name: Check whether migration is needed
-        id: migration
-        run: |
-          if [ -f index.html ]; then
-            echo "needed=false" >> "$GITHUB_OUTPUT"
-          else
-            echo "needed=true" >> "$GITHUB_OUTPUT"
-          fi
-      - name: Check out original homepage
-        if: steps.migration.outputs.needed == 'true'
+      - name: Check out anonymous implementation
         uses: actions/checkout@v4
         with:
-          repository: mingjia2005/CAFE-Closed-Loop-Autonomous-Task-Formulation-and-Execution-without-Explicit-Task-Input
-          ref: 4c713cec67b2d14383433ef0b8de548613f754c6
-          path: .migration-source
+          repository: submissionforpaper/CAFE-Closed-Loop-Autonomous-Task-Formulation-and-Execution-without-Explicit-Task-Input
+          ref: d894f08e818649081632e1e21d515edc230c5c9c
+          path: .code-source
           persist-credentials: false
-      - name: Copy homepage and update destination links
-        if: steps.migration.outputs.needed == 'true'
+      - name: Copy source and prepare anonymous links
         shell: python
         run: |
           from pathlib import Path
+          import re
           import shutil
-          source = Path(".migration-source")
-          for item in source.iterdir():
-              if item.name == ".git":
-                  continue
-              destination = Path(item.name)
-              if item.is_dir():
-                  shutil.copytree(item, destination, dirs_exist_ok=True)
-              else:
-                  shutil.copy2(item, destination)
-          old_repo = "mingjia2005/CAFE-Closed-Loop-Autonomous-Task-Formulation-and-Execution-without-Explicit-Task-Input"
-          new_repo = "submissionforpaper/CAFE-Closed-Loop-Autonomous-Task-Formulation-and-Execution-without-Instance-Specific-Instructions"
-          old_site = "https://mingjia2005.github.io/CAFE-Closed-Loop-Autonomous-Task-Formulation-and-Execution-without-Explicit-Task-Input/"
-          new_site = "https://submissionforpaper.github.io/CAFE-Closed-Loop-Autonomous-Task-Formulation-and-Execution-without-Instance-Specific-Instructions/"
-          for name in ["index.html", "README.md", "robots.txt", "sitemap.xml"]:
-              path = Path(name)
-              text = path.read_text(encoding="utf-8")
-              text = text.replace(old_site, new_site).replace("https://github.com/" + old_repo, "https://github.com/" + new_repo)
-              path.write_text(text, encoding="utf-8")
-          assert 'id="method"' in Path("index.html").read_text(encoding="utf-8")
-          assert Path("assets/videos/CAFE.mp4").stat().st_size == 89835603
-          assert Path(".nojekyll").is_file()
-      - name: Save complete migrated homepage
-        if: steps.migration.outputs.needed == 'true'
+          from html.parser import HTMLParser
+          code_url = "https://github.com/submissionforpaper/CAFE-Closed-Loop-Autonomous-Task-Formulation-and-Execution-without-Explicit-Task-Input"
+          project_url = "https://github.com/submissionforpaper/CAFE-Closed-Loop-Autonomous-Task-Formulation-and-Execution-without-Instance-Specific-Instructions"
+          site_url = "https://submissionforpaper.github.io/CAFE-Closed-Loop-Autonomous-Task-Formulation-and-Execution-without-Instance-Specific-Instructions/"
+          if not Path("CAFE").exists():
+              shutil.copytree(".code-source/CAFE", "CAFE", ignore=shutil.ignore_patterns("__pycache__", "*.pyc"))
+              shutil.copy2(".code-source/README.md", "CAFE/README.md")
+          page = Path("index.html")
+          html = page.read_text(encoding="utf-8")
+          html = re.sub(r'<a\s+href="https://(?!submissionforpaper\.)[^"]+\.github\.io/[^"]*"[^>]*>[^<]*</a>', "", html)
+          html = html.replace(project_url, code_url).replace(">GitHub <span", ">Code <span").replace(">Project repository ", ">Code repository ")
+          page.write_text(html, encoding="utf-8")
+          readme = [
+              "# CAFE",
+              "",
+              "Closed-Loop Autonomous Task Formulation and Execution without Instance-Specific Instructions.",
+              "",
+              "Anonymous materials for review.",
+              "",
+              f"- [Project homepage]({site_url})",
+              f"- [Implementation repository]({code_url})",
+              "- [Local implementation guide](CAFE/README.md)",
+              "",
+              "## Source code",
+              "",
+              "The implementation is included in CAFE/. The main entry point is CAFE/aithor2/main_with_depth.py.",
+              "",
+              "Install dependencies:",
+              "",
+              "~~~bash",
+              "pip install -r CAFE/aithor2/requirements.txt",
+              'pip install -r "CAFE/aithor2/embodied B1/requirements.txt"',
+              "~~~",
+              "",
+              "Configure your own API credentials before running the experiments.",
+              "",
+              "## Website",
+              "",
+              "The static homepage is served by GitHub Pages from main at the repository root.",
+              "Images, fonts, PDFs, results data and the project video are included in assets/.",
+              "",
+          ]
+          Path("README.md").write_text("\n".join(readme), encoding="utf-8")
+          class Links(HTMLParser):
+              def handle_starttag(self, tag, attrs):
+                  for key, value in attrs:
+                      if key in ("href", "src", "content") and value and value.startswith(("http://", "https://")):
+                          assert value.startswith((code_url, site_url)), f"Unexpected external URL: {value}"
+          Links().feed(html)
+          assert 'id="method"' in html
+          assert Path("CAFE/aithor2/main_with_depth.py").is_file()
+          assert not list(Path("CAFE").rglob("*.pyc"))
+      - name: Save anonymous project
         run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add .nojekyll README.md assets index.html robots.txt site.css site.js sitemap.xml
-          git commit -m "Migrate CAFE homepage and assets to submissionforpaper"
-          git push origin HEAD:main
+          git config user.name "submissionforpaper"
+          git config user.email "270125933+submissionforpaper@users.noreply.github.com"
+          git add CAFE index.html README.md
+          if ! git diff --cached --quiet; then
+            git commit -m "Add implementation and anonymous project links"
+            git push origin HEAD:main
+          fi
